@@ -46,23 +46,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def output_headers(self):
         print("headers :")
-        # print("-- %s --" % self.headers)
-        # for item in dir(self.headers.items()):
-        #     print(item)
-
-        # print(self.headers.get('Content-Length'))
         for item in self.headers:
             print("  - %s : %s" % (item, self.headers[item]))
 
     def output_body(self):
         print("body : >")
-        # for item in dir(self.headers):
-        #     print(item)
-
         content_length = self.headers.get('content-length')
-        # python 2
-        # content_length = self.headers.getheader('content-length')
-
         print(content_length)
         length = int(content_length) if content_length else 0
         body_str = self.rfile.read(length)
@@ -101,7 +90,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         return
 
 
-if __name__ == "__main__":
+def main():
     parser = OptionParser()
     parser.add_option(
         "-p",
@@ -121,3 +110,7 @@ if __name__ == "__main__":
     print('Listening on localhost:%s' % port)
     server = HTTPServer(('', port), RequestHandler)
     server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

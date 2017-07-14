@@ -2,6 +2,7 @@
 *.egg-info
 *.pyc
 .tox
+deploy.txt
 MANIFEST
 dist
 docs/_build
