@@ -1,17 +1,26 @@
 #!/usr/bin/env python
 # Reflects the requests from HTTP methods GET, POST, PUT, and DELETE
 
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+# try 3: except 2
+try:
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+except ImportError:
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+
+try:
+    from urllib.parse import urlparse, parse_qs
+except ImportError:
+    from urlparse import urlparse, parse_qs
+
 from optparse import OptionParser
-import urlparse
 
 # https://docs.python.org/2/library/basehttpserver.html?highlight=basehttprequesthandler#BaseHTTPServer.BaseHTTPRequestHandler
 
 
 def query_split(path):
-    o = urlparse.urlparse(path)
+    o = urlparse(path)
     query_str = o.query
-    d = urlparse.parse_qs(query_str)
+    d = parse_qs(query_str)
     return d
 
 
@@ -37,15 +46,32 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def output_headers(self):
         print("headers :")
+        # print("-- %s --" % self.headers)
+        # for item in dir(self.headers.items()):
+        #     print(item)
+
+        # print(self.headers.get('Content-Length'))
         for item in self.headers:
             print("  - %s : %s" % (item, self.headers[item]))
 
     def output_body(self):
         print("body : >")
-        content_length = self.headers.getheaders('content-length')
-        length = int(content_length[0]) if content_length else 0
+        # for item in dir(self.headers):
+        #     print(item)
+
+        content_length = self.headers.get('content-length')
+        # python 2
+        # content_length = self.headers.getheader('content-length')
+
+        print(content_length)
+        length = int(content_length) if content_length else 0
         body_str = self.rfile.read(length)
-        print(body_str)
+
+        try:
+            data = body_str.decode()
+            print(data)
+        except AttributeError:
+            print(body_str)
 
     def do_GET(self):
         self.output_start()
@@ -53,8 +79,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.output_client_ip()
         self.output_queries()
         self.output_headers()
-        self.output_end()
         self.send_response(200)
+        self.end_headers()
+        self.output_end()
 
     def do_POST(self):
         self.output_start()
@@ -63,8 +90,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.output_queries()
         self.output_headers()
         self.output_body()
-        self.output_end()
         self.send_response(200)
+        self.end_headers()
+        self.output_end()
 
     do_PUT = do_POST
     do_DELETE = do_GET

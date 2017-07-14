@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='httpdumptool',
-    version='0.1',
+    version='0.2',
     description='Tool for dumping output of HTTP requests',
     url='https://github.com/ryantownshend/httpdumptool',
     author='Ryan Townshend',
