@@ -12,9 +12,19 @@ try:
 except ImportError:
     from urlparse import urlparse, parse_qs
 
-from optparse import OptionParser
+import click
+import click_log
+import logging
+import json
+import yaml
+import pprint
+
+log = logging.getLogger(__name__)
+click_log.basic_config(log)
 
 # https://docs.python.org/2/library/basehttpserver.html?highlight=basehttprequesthandler#BaseHTTPServer.BaseHTTPRequestHandler
+
+FORMATS = ['json', 'yaml']
 
 
 def query_split(path):
@@ -25,42 +35,45 @@ def query_split(path):
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    output_format = "json"
+    report_dict = {}
 
     def output_start(self):
-        print("--- %s Request Start" % self.command)
+        self.report_dict['command'] = self.command
 
     def output_client_ip(self):
-        print("client ip : %s" % (self.client_address[0]))
-
-    def output_end(self):
-        print("")
+        self.report_dict['ip'] = self.client_address[0]
 
     def output_path(self):
-        print("path : %s " % self.path)
+        self.report_dict['path'] = self.path
 
     def output_queries(self):
-        print("queries :")
         queries = query_split(self.path)
+        self.report_dict['queries'] = {}
         for item in queries:
-            print("  - %s : %s" % (item, queries[item]))
+            value = queries[item]
+            if isinstance(value, (list, tuple)):
+                if len(value) == 1:
+                    value = value[0]
+
+            self.report_dict['queries'][item] = value
 
     def output_headers(self):
-        print("headers :")
+        self.report_dict['headers'] = {}
         for item in self.headers:
-            print("  - %s : %s" % (item, self.headers[item]))
+            self.report_dict['headers'][item] = self.headers[item]
 
     def output_body(self):
-        print("body : >")
         content_length = self.headers.get('content-length')
-        print(content_length)
         length = int(content_length) if content_length else 0
         body_str = self.rfile.read(length)
-
+        self.report_dict['body_length'] = length
         try:
             data = body_str.decode()
-            print(data)
+            self.report_dict['body'] = data
+
         except AttributeError:
-            print(body_str)
+            self.report_dict['body'] = body_str
 
     def do_GET(self):
         self.output_start()
@@ -69,8 +82,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.output_queries()
         self.output_headers()
         self.send_response(200)
-        self.end_headers()
-        self.output_end()
+        self.report()
 
     def do_POST(self):
         self.output_start()
@@ -80,36 +92,68 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.output_headers()
         self.output_body()
         self.send_response(200)
-        self.end_headers()
-        self.output_end()
+        self.report()
 
     do_PUT = do_POST
     do_DELETE = do_GET
 
-    def log_message(self, format, *args):
-        return
+    def report(self):
+        if self.output_format in "json":
+            self.report_json()
+
+        elif self.output_format in "yaml":
+            self.report_yaml()
+
+    def report_yaml(self):
+        print(yaml.dump(self.report_dict, default_flow_style=False))
+
+    def report_json(self):
+        print(json.dumps(self.report_dict, indent=4))
+
+    def report_string(self):
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.report_dict)
 
 
-def main():
-    parser = OptionParser()
-    parser.add_option(
-        "-p",
-        "--port",
-        dest="port",
-        help="port to listen on, defaults to 8080",
-        metavar="PORT",
-        default=8080,
-        type="int"
-    )
-    parser.usage = (
-        "Creates a server that will echo out any GET or POST parameters\n"
-    )
-    (options, args) = parser.parse_args()
+class Controller(object):
 
-    port = options.port
-    print('Listening on localhost:%s' % port)
-    server = HTTPServer(('', port), RequestHandler)
-    server.serve_forever()
+    def __init__(self, port, format_string):
+        self.port = port
+        self.format_string = format_string
+        print('Listening on localhost:%s' % self.port)
+
+    def run(self):
+        self.server = HTTPServer(('', self.port), RequestHandler)
+        self.server.RequestHandlerClass.output_format = self.format_string
+
+        try:
+            self.server.serve_forever()
+        except KeyboardInterrupt:
+            pass
+
+
+@click.command()
+@click.option(
+    "-p",
+    "--port",
+    "port",
+    help="port to listen on, defaults to 8080",
+    default=8080,
+)
+@click.option(
+    "-f",
+    "--format",
+    "format_string",
+    help="format to output report",
+    default="yaml",
+    type=click.Choice(FORMATS),
+)
+@click.pass_context
+@click_log.simple_verbosity_option(log)
+def main(ctx, port, format_string):
+
+    controller = Controller(port, format_string)
+    controller.run()
 
 
 if __name__ == "__main__":
