@@ -17,6 +17,7 @@ setup(
     entry_points={
         'console_scripts': [
             'httpdumptool = httpdumptool:main',
+            'honk = httpdumptool:main'
         ],
     },
 )
