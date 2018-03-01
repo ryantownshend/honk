@@ -18,13 +18,15 @@ import logging
 import json
 import yaml
 import pprint
+from tabulate import tabulate
+
 
 log = logging.getLogger(__name__)
 click_log.basic_config(log)
 
 # https://docs.python.org/2/library/basehttpserver.html?highlight=basehttprequesthandler#BaseHTTPServer.BaseHTTPRequestHandler
 
-FORMATS = ['json', 'yaml']
+FORMATS = ['json', 'yaml', 'string']
 
 
 def query_split(path):
@@ -45,7 +47,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.report_dict['ip'] = self.client_address[0]
 
     def output_path(self):
-        self.report_dict['path'] = self.path
+        self.report_dict['full_path'] = self.path
+        self.report_dict['base_path'] = urlparse(self.path).path
 
     def output_queries(self):
         queries = query_split(self.path)
@@ -104,6 +107,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif self.output_format in "yaml":
             self.report_yaml()
 
+        elif self.output_format in "string":
+            self.report_string()
+
     def report_yaml(self):
         print(yaml.dump(self.report_dict, default_flow_style=False))
 
@@ -111,8 +117,32 @@ class RequestHandler(BaseHTTPRequestHandler):
         print(json.dumps(self.report_dict, indent=4))
 
     def report_string(self):
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(self.report_dict)
+        # pp = pprint.PrettyPrinter(indent=4)
+        # pp.pprint(self.report_dict)
+
+        print("command   : %s" % self.report_dict['command'])
+        print("ip        : %s" % self.report_dict['ip'])
+        print("base path : %s" % self.report_dict['base_path'])
+        print(" ")
+        # for item in self.report_dict['headers']:
+        #     print("  %20s : %s" % (item, self.report_dict['headers'][item]))
+        h_headers = ['Header', 'Value']
+        # flip the code and name and sort
+        h_data = sorted(
+            [(k, v) for k, v in self.report_dict['headers'].items()])
+        print(tabulate(h_data, headers=h_headers))
+
+        print(" ")
+        # for item in self.report_dict['queries']:
+        #     print("  %20s : %s" % (item, self.report_dict['queries'][item]))
+        q_headers = ['Param', 'Value']
+        # flip the code and name and sort
+        q_data = sorted(
+            [(k, v) for k, v in self.report_dict['queries'].items()])
+        print(tabulate(q_data, headers=q_headers))
+
+    def log_message(self, format, *args):
+        return
 
 
 class Controller(object):
