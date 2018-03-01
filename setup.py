@@ -2,10 +2,10 @@ from __future__ import with_statement
 from setuptools import setup
 
 setup(
-    name='httpdumptool',
+    name='honk',
     version='0.4',
     description='Tool for dumping output of HTTP requests',
-    url='https://github.com/ryantownshend/httpdumptool',
+    url='https://github.com/ryantownshend/honk',
     author='Ryan Townshend',
     author_email='citizen.townshend@gmail.com',
     install_requires=[
@@ -13,11 +13,10 @@ setup(
         'click-log>=0.2.1',
         'PyYAML>=3.12',
     ],
-    py_modules=['httpdumptool'],
+    py_modules=['honk'],
     entry_points={
         'console_scripts': [
-            'httpdumptool = httpdumptool:main',
-            'honk = httpdumptool:main'
+            'honk = honk:main'
         ],
     },
 )
