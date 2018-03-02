@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='honk',
-    version='0.4',
+    version='0.5',
     description='Tool for dumping output of HTTP requests',
     url='https://github.com/ryantownshend/honk',
     author='Ryan Townshend',
