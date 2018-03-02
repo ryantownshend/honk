@@ -12,6 +12,7 @@ setup(
         'click>=6.7',
         'click-log>=0.2.1',
         'PyYAML>=3.12',
+        'tabulate>=0.8.2'
     ],
     py_modules=['honk'],
     entry_points={
